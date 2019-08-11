@@ -1,0 +1,276 @@
+虚拟化技术 : 主机级虚拟化、容器级虚拟化(资源的比例级分配Cgroups)
+
+- UTS : 主机名和域名
+- IPC : 信号量、消息队列和共享内存
+- PID : 进程编号
+- Network : 网络设备、网络栈、端口等
+- Mount : 挂载点(文件系统)
+- User : 用户和用户组，需要内核版本3.8
+- Cgroups
+
+  - blkio : 块设备IO
+
+  - cpu : CPU
+
+  - cpuacct : cpu资源使用报告
+
+  - devices : 设备访问
+
+  - freezer : 挂起或恢复任务
+
+  - memory : 内存用量及报告
+
+  - perf_event : 对cgroup 中的任务进行统一性能测试
+
+  - net_cls : cgroup中的任务创建的数据报文的类别标识符
+- LinuX Container : LXC
+- Docker : 基于LXC，利用images创建容器，[一次编写，到处运行]，[**分层构建，联合挂载**]，
+- libcontainer->runC
+- 容器生命周期 : created、running、paused、stopped、deleted
+- 在容器中的程序不能运行在容器后台
+
+Docker
+
+- docker commit 通过容器构建镜像    -a 作者    -m 消息    -
+- docker build 通过Dockerfile文件构建    docker build [OPTIONS] PATH | URL | -
+- aufs : advanced multi-layered unification filesystem 高级多层统一文件系统　
+  - **用于为linux文件系统实现"联合挂载"**
+  - overlayfs : 3.18版本后被合并到linux内核
+  - ubuntu : aufs   centos : devicemapper ---> overlay2
+- docker 数据卷的使用
+  - docker run -v ~/datavolume:/data:ro 
+  - Dockerfile 指令 : VOLUME ["/data"]     在Dockerfile中创建的数据卷是docker启动容器时动态生成的，他们是不能共享的
+  - 数据卷容器 : 命名的容器挂载数据卷，其他容器通过挂载这个容器实现数据共享，挂载数据卷的容器就叫做数据卷容器
+    - 挂载数据卷容器的方法 : docker run --volumes-from [CONTAINER NAME]
+  - docker 数据卷的备份和还原 : docker run --volumes-from  [CONTAINER_NAME]  -v ~/backup:/backup --name [CONTAINER_NAME] ubuntu tar cvf /backup/backup.tar [container data volume]
+  - docker镜像由多个只读层叠加而成，启动容器时，docker会加载只读镜像层并在镜像栈顶部添加一个读写层
+  - 如果运行中的容器修改了现有的一个已经存在的文件，那该文件将会从读写层下面的只读层复制到读写层，该文件的只读版本仍然存在，只是已经被读写层中该文件的副本所隐藏，即"写时复制 (COW)"
+  - 
+- docker C/S模式    
+  - Docker CLI  : User <-> Docker CLI <---Bash 命令---> Docker Client <---Socket---> Docker Server
+  - Remote API : User <-> 自定义程序 <--- Remote API---> Docker Client <---Socket---> Docker Server
+  - 连接方式 : 
+    - unix:///var/run/docker.sock
+    - tcp://host:port
+    - fd://socketfd
+- Linux 虚拟网桥的特点 : 数据链路层
+  -  可以设置IP地址
+  - 相当于拥有一个隐藏的虚拟交换机(网桥)
+- docker 虚拟网桥 docker0
+  - 默认情况下允许所有容器互相连接
+    - --link $docker run --link=[CONTAINER_NAME]:[ALIAS] [IMAGE] [COMMOND]
+  - 可以设置不能互联 : --icc=false --iptables=true --link
+- docker 容器与外部网络的连接
+  - --ip-forward=true
+  - iptables
+  - 桥接 : 将物理网卡当交换机使用，而用一个虚 拟网卡接收物理机的报文，容器的虚拟网卡 (包含唯一的MAC地址) 也连接到物理网卡(交换机)上，这样容器就和物理机平级了
+  - NAT : 经过两层NAT，效率低
+  - 容器与外网连接一般不用桥接和NAT，而用Overlay Network隧道网络 GRE
+- Docker 4种网络模型
+  - Closed container : 没有网络
+  - Bridged container : 使用桥接式网络NAT桥 (默认)
+  - Joined container : 共享 Net、IPC、UTS，拥有独立的User、Pid、Mount
+  - Open container : 直接使用物理机的网络
+- docker 容器的跨主机连接
+  - 使用桥接实现跨主机容器连接
+    - 优点 : 配置简单，不依赖第三方软件
+    - 缺点1 : 与主机在同网段，需要小心划分IP地址
+    - 缺点2 : 需要有网段控制权，在生产环境中不易实现
+    - 缺点3 : 不容易管理，兼容性不佳
+  - 使用Open vSwitch(Overlay Network隧道)实现跨主机容器连接 : Open vSwitch是一个**高质量的、多层虚拟交换机**，它的目的是让大规模网络自动化可以通过编程扩展，同时仍然支持标准的管理接口和协议(例如 NetFlow, sFlow, SPAN, RSPAN, CLI, LACP, 802.1ag)
+    - 建立 ovs 网桥
+    - 添加 GRE 连接
+    - 配置 docker 容器虚拟网桥
+    - 为虚拟网桥添加 ovs 接口
+    - 添加不同 docker 容器网段路由
+  - 使用weave实现跨主机容器连接
+    - 下载，安装，weave lauch
+- 面向服务的体系结构 SOA/微服务体系结构
+  - 容器调度 : docker swarm, kubernetes, apache mesos, coreOS Fleet, Openstack magnum
+  - 配置管理 : etcd, zookeeper
+  - 服务发现 : etcd, Haproxy, consul
+  - 日志/监控/报警 : ELK, Promethuse, cAdvisor
+- CaaS
+
+Kubernetes
+
+- 不可变的基础设施原则 : 部署到容器中的内容(如应用程序)是不可变的，不能通过登录到容器中做改变，而是要以部署新的版本替代
+- Kubernetes内的任何东西都是声明式配置开发者或运维指定系统状态是通过部署描述符和配置文件进行的，并且，Kubernetes 是可以响应这些变化的——你不需要去提供命令，一步一步去进行。
+- Pod : 这是Kubernetes中的最小部署单元，它本质上是一组容器，在一个豆荚(Pod)中的容器共享同一个文件系统和网络命名空间
+- Services : Kubernetes服务提供负载均衡、命名和发现以将一个微服务与其它隔离。服务是通过服务控制器(ReplicationController)支持的它反过来又负责维护在系统内运行期望数量的豆荚实例的相关细节。服务、复制控制器和豆荚在 Kubernetes 中通过使用“标签”连接到一起，并通过它进行命名和选择
+- 为什么 k8s 使用 pod 管理容器，而不是直接操作容器 : 
+  - 因为有些容器天生就是需要紧密的联系，放在一个 pod 中表示一个完整的服务，k8s 同时会在每个 pod 中加入 pause 容器，来管理内部容器组的状态
+  - Pod 中的所有容器共享 ip，共享 volume，方便进行容器之间通信和数据共享
+  - 这些容器联系非常紧密，而且需要直接共享资源，例如一个爬虫程序，和一个 web server 程序。web server 强烈依赖爬虫程序提供数据支持
+- master/node
+  - master : API Server, Schedule, Controller-Manager, etcd(可以部署在master中，不单独部署)
+  - node : kubelet, kube-proxy, docker ...
+- Pod, Controller, Service, Label, Label Selector
+  - Label : key=value
+  - Label Selector:
+- Pod : 
+  - 自主式Pod
+  - 控制器管理的Pod : 通过Label Selector选择Pod
+    - ReplicactionController
+    - ReplicaSet
+    - Deployment(无状态应用)
+    - StatefulSet(有状态)
+    - DaemonSet
+    - Job, Cronjob
+- Service : 通过Label Selector选择Pod
+- 通信
+  - 同一个Pod内的多个容器间    lo
+  - 各Pod间的通信    Overlay Network
+  - Pod 与 Service之间的通信    kube-proxy : 管理Service
+- 三个网络
+  - 节点网络
+  - Service网络(集群网络)
+  - Pod网络
+- CNI :
+  - flannel : 网络配置
+  - calico : 网络配置，网络策略
+  - canal : 结合calico和flannnel
+- kubeadm
+  - master, nodes : 安装kubelet, kubeadm, docker
+  - master : kubeadm init
+  - nodes : kubeadm join
+- 资源对象
+  - workload : Pod, ReplicaSet, Deployment, StatefulSet, DaemonSet, Job, Cronjob
+  - 服务发现及均衡 : Service, Ingress
+  - 配置与存储 : Volume, CSI
+    - ConfigMap, Secret
+    - DownwardAPI
+  - 集群级资源
+    - Namespace, Node, Role, ClusterRole, RoleBinding, ClusterRoleBinding
+  - 元数据型资源
+    - HPA, PodTemplate, LimitRange
+- 创建资源的方法
+  - apiserver仅接收json格式的资源定义，yaml格式提供配置清单，apiserver自动将其转为json格式后提交
+- 大部分资源配置清单
+  - apiVersion : group/version
+  - kind : 资源类别
+  - metadata : 元数据
+    - name
+    - namespace
+    - labels
+    - annotations
+  - 每个资源的引用PATH
+    - /API/GROUP/VERSION/namespaces/NAMESPACE/TYPE/NAME
+  - spec : 期望状态，desired state
+  - status : 当前状态，current state, 由kubernetes集群维护 
+- Pod生命周期
+  - 执行操作
+    - 容器初始化
+      - init container初始化容器，串行执行
+      - post start
+      - pre stop
+    - 容器探测
+      - liveness probe
+      - readiness probe
+  - 状态
+    - Pendind : 调度未完成
+    - Running
+    - Failed
+    - Succeeded
+    - Unknown
+  - restartPolicy
+    - Always (default)
+    - OnFailure
+    - Never
+  - 探针类型
+    - Exec
+    - HttpGet
+    - tcpSocket
+- Pod控制器
+  - ReplicaSet
+  - Deployment : 无状态，建立在ReplicaSet之上，其中只有一个运行，保存10个历史版本
+  - DaemonSet : 系统级功能，在集群的每个节点上只运行一个特定的Pod副本，无状态
+  - Job : 一次性运行
+  - Cronjob : 周期性运行
+  - StatefulSet
+- Service代理工作模式
+  - userspace
+  - iptables
+  - ipvs (default)
+- Service类型
+  - ExternalName, ClusterIP, NodePort, LoadBalance
+- Ingress
+- 存储卷
+  - emptyDir : 临时目录
+  - hostPath : 本地存储
+  - 非本地存储
+    - 网络存储
+      - SAN : iSCSI, ...
+      - NAS : nfs, cifs
+	  - 分布式存储
+	     - glusterfs
+       - rbd
+     - cephfs    
+    - 云存储
+      - EBS
+      - Azure Disk
+- pv, pvc    persistentVolumeClaim    存储即服务解耦
+  - StorageClass : 动态生成 pv
+    - Gold Storage Class
+    - Silver Storage Class
+    - Bronze Storage Class
+- secret : 功能与 configMap一致，但通过编码方式编码配置文件
+  - generic : 密码
+  - tls : 私钥和证书
+  - docker-registery : docker的私有仓库的认证信息
+- configMap : 配置信息，配置中心
+- 配置容器化应用的方式 : 
+  - 自定义命令行参数 args: []
+  - 把配置文件直接拷进镜像
+  - 环境变量
+    - clould native 的应用程序一般可直接通过环境变量加载配置
+    - 通过entrypoint脚本来预处理变量为配置文件中的配置信息
+  - 存储卷 : 将配置信息放入存储卷中，如 configMap, secret
+- statefulSet
+  - 
+- kubernetes认证授权
+  - 认证 : token, tls, user/password
+  - 授权插件 : Node, ABAC, RBAC(Role-based AC)
+  - 授权 : RBAC
+    - role, rolebinding
+    - clusterrole, clusterrolebinding
+- kubernetes集群管理方式
+  - 命令式 : kubectl create, run, expose, delete, ...
+  - 命令式配置文件 : kubectl create -f /PATH/TO/RESOURCE_CONFIGURATION_FILE, delete -f, replace -f
+  - 声明式配置文件 : kubectl apply -f, patch
+- Helm :  
+
+Istio :
+
+- service mesh
+  - Kubernetes 的本质是应用的生命周期管理，具体来说就是部署和管理（扩缩容、自动恢复、发布）
+  - Kubernetes 为微服务提供了可扩展、高弹性的部署和管理平台
+  - Service Mesh 的基础是透明代理，通过 sidecar proxy 拦截到微服务间流量后再通过控制平面配置管理微服务的行为
+  - Service Mesh 将流量管理从 Kubernetes 中解耦，Service Mesh 内部的流量无需 `kube-proxy` 组件的支持，通过为更接近微服务应用层的抽象，管理服务间的流量、安全性和可观察性
+  - Envoy xDS 定义了 Service Mesh 配置的协议标准
+  - Service Mesh 是对 Kubernetes 中的 service 更上层的抽象，它的下一步是 serverless
+  - 如果说 Kubernetes 管理的对象是 Pod，那么 Service Mesh 中管理的对象就是一个个 Service，所以说使用 Kubernetes 管理微服务后再应用 Service Mesh 就是水到渠成了，如果连 Service 你也不想管了，那就用如 knative 这样的 serverless 平台
+- xDS
+  - CDS、EDS、LDS、RDS 是最基础的 xDS 协议，它们可以分别独立更新的
+  - 所有的发现服务（Discovery Service）可以连接不同的 Management Server，也就是说管理 xDS 的服务器可以是多个
+  - Envoy 在原始 xDS 协议的基础上进行了一些列扩充，增加了 SDS（秘钥发现服务）、ADS（聚合发现服务）、HDS（健康发现服务）、MS（Metric 服务）、RLS（速率限制服务）等 API
+  - 为了保证数据一致性，若直接使用 xDS 原始 API 的话，需要保证这样的顺序更新：CDS --> EDS --> LDS --> RDS，这是遵循电子工程中的**先合后断**（Make-Before-Break）原则，即在断开原来的连接之前先建立好新的连接，应用在路由里就是为了防止设置了新的路由规则的时候却无法发现上游集群而导致流量被丢弃的情况，类似于电路里的断路
+  - CDS 设置 Service Mesh 中有哪些服务
+  - EDS 设置哪些实例（Endpoint）属于这些服务（Cluster）
+  - LDS 设置实例上监听的端口以配置路由
+  - RDS 最终服务间的路由关系，应该保证最后更新 RDS
+- Enovy
+  - **Downstream（下游）**：下游主机连接到 Envoy，发送请求并接收响应，即发送请求的主机
+  - **Upstream（上游）**：上游主机接收来自 Envoy 的连接和请求，并返回响应，即接受请求的主机
+  - **Listener（监听器）**：监听器是命名网地址（例如，端口、unix domain socket 等)，下游客户端可以连接这些监听器。Envoy 暴露一个或者多个监听器给下游主机连接
+  - **Cluster（集群）**：集群是指 Envoy 连接的一组逻辑相同的上游主机。Envoy 通过服务发现来发现集群的成员。可以选择通过主动健康检查来确定集群成员的健康状态。Envoy 通过负载均衡策略决定将请求路由到集群的哪个成员
+- Istio功能
+  - 流量管理：这是 Istio 的最基本的功能
+    - **Gateway**：Gateway 描述了在网络边缘运行的负载均衡器，用于接收传入或传出的HTTP / TCP连接
+    - **VirtualService**：VirtualService实际上将 Kubernetes 服务连接到 Istio Gateway。它还可以执行更多操作，例如定义一组流量路由规则，以便在主机被寻址时应用
+    - **DestinationRule**：`DestinationRule` 所定义的策略，决定了经过路由处理之后的流量的访问策略。简单的说就是定义流量如何路由。这些策略中可以定义负载均衡配置、连接池尺寸以及外部检测（用于在负载均衡池中对不健康主机进行识别和驱逐）配置
+    - **EnvoyFilter**：`EnvoyFilter` 对象描述了针对代理服务的过滤器，这些过滤器可以定制由 Istio Pilot 生成的代理配置。这个配置初级用户一般很少用到
+    - **ServiceEntry**：默认情况下 Istio Service Mesh 中的服务是无法发现 Mesh 外的服务的，`ServiceEntry` 能够在 Istio 内部的服务注册表中加入额外的条目，从而让网格中自动发现的服务能够访问和路由到这些手工加入的服务
+  - 策略控制：通过 Mixer 组件和各种适配器来实现，实现访问控制系统、遥测捕获、配额管理和计费等
+  - 可观测性：通过 Mixer 来实现
+  - 安全认证：Citadel 组件做密钥和证书管理

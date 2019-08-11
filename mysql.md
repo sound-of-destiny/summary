@@ -1,0 +1,200 @@
+mysql
+
+- 单行函数
+   - 字符函数
+       - length
+       - concat
+       - substr
+       - instr
+       - trim
+       - upper
+       - lower
+       - lpad
+       - rpad
+       - replace
+    - 数学函数
+      - round
+      - ceil
+      - floor
+      - truncate
+      - mod
+  - 日期函数
+    - now
+    - curdate
+    - curtime
+    - year
+    - month
+    - monthname
+    - day
+    - hour
+    - minite
+    - second
+    - str_to_date
+    - date_format
+  - 其他函数
+    - version
+    - database
+    - user
+  - 控制函数
+    - if
+    - case
+- 分组函数：用作统计使用
+  - sun
+  - avg
+  - max
+  - min
+  - count : 非空值个数
+- 连接查询
+  - 内连接 : 查询两个表中都有的记录	sql92逗号仅支持内连接	sql99 [inner] join ... on
+    - 等值连接 : 连接条件为=
+    - 非等值连接 : 连接条件为非=，如 between and
+    - 自连接 : 在一个表中的等值连接，员工名，上级名
+  - 外连接 : 查询一个表中有，另一个表中没有的记录，外连接查询结果=内连接查询结果+主表中有而从表中没有的记录，
+    - 左外连接 : left join 左边的是主表	left [outer] join ... on
+    - 右外连接 : right join 右边的是主表     right [outer] join ... on
+    - 全外连接 : mysql 不支持　 full [outer] join
+  - 交叉连接 cross join
+- 子查询 : 出现在其他语句中的select语句，称为子查询
+  - select 后面 : 仅支持标量子查询
+  - from 后面 : 支持表子查询
+  - where 和 having 后面 : 
+    - 标量子查询 : 一般搭配单行操作符使用 > < >= <= = <>
+    - 列子查询 : 一般搭配多行操作符使用 
+      - in/not in : 等于列表中的任意一个
+      - any/some : 不重要，可被替代
+      - all : 同上
+  - exits 后面(相关子查询 : 表子查询，后面的查询是否有值，返回1代表true，0代表false
+- 分页查询 : limit offset, size
+- 联合查询 : union 将多条查询语句的结果合并成一个结果，查询出来的结果默认是第一条查询语句的列，union会自动去重，不去重的话使用union all
+- 表的复制 : 
+  - 仅复制表结构 create table new_table_name like old_table_name
+  - 复制表数据和结构 create table new_table_name select * from old_table_name
+- 事务 : 事务控制语言 TCL
+  - 隐式事务 : 事务没有明显的开启和结束的标记，比如 insert、update、delete 语句
+  - 显示事务 : set autocommit=0; [start transaction;] ...... commit;/rollback 由程序控制提交还是回滚
+  - 多个事务同时执行 : 
+    - 脏读 : 针对更新
+    - 不可重复读
+    - 幻读 : 针对插入和删除
+  - 隔离级别 : 数据库系统必须具有隔离并发运行各个事务的能力
+    - 读未提交 : 脏读、不可重复读、幻读
+    - 读已提交 : 不可重复读、幻读
+    - 可重复读 : 幻读
+    - 序列化 : 禁止其他事务对该表执行插入、更新和删除操作。表锁
+  - savepoint : 设置保存点 rollback to savepoint_name 回滚到设置的保存点
+- 视图 : 只保存了sql逻辑不保存查询结果，用来简化常用的复杂逻辑 create view view_name as select ......
+- 存储过程和函数 : 类似于编程语言中的方法，一组预先编译好的sql语句的集合
+  - 功能相同的操作只需调用存储过程或函数就行了，不用另外编sql语句，提高了代码的复用
+  - 执行一次后就会编译，以后调用就不用编译了，减少了sql编译次数
+  - 减少了和数据库服务器的连接次数
+  - create procedure 存储过程名(参数列表) begin 存储过程体...... end
+  - 参数类型包含三部分    参数模式    参数名    参数类型
+  - 参数模式
+    - IN : 该参数需要调用方传入值，即Java函数参数
+    - OUT : 该参数可以作为返回值，即Java函数返回值
+    - INOUT : 既可输入又可输出
+  - 调用语法 : call 存储过程名
+  - 删除存储过程 : drop procedure 存储过程名
+  - 存储过程和函数的区别 : 函数有且只有一个返回，而存储过程可以有不确定数量的返回值
+  - 函数调用 : select 函数名(参数列表)
+- mysql 四大目录 :
+   - /var/lib/mysql		 mysql数据库文件的存放路径　
+   - /usr/share/mysql   配置文件目录
+   - /usr/bin　　　　　相关命令目录
+   - /etc/init.d/mysql    启停相关脚本
+- mysql 数据文件
+   - .frm 	 存放表
+   - .MYD    存放表数据
+   - .MYI      存放**表索引**
+- sql性能下降、执行时间长、等待时间长
+   - 查询语句写的烂
+   - 索引失效
+   - 关联查询太多join (设计缺陷或不得已的需求)
+   - 服务器调优及各个参数设置(缓冲、线程数等)
+- 索引 : 索引是帮助MySQL高效获取数据的**数据结构** [B+树]
+   - 单值索引 : 即一索引只包含单个列，一个表可以有多个单列索引
+   - 唯一索引 : 索引列的值必须唯一，但允许有空值
+   - 复合索引 : 即一个索引包含多个列
+   - 优点 : 提高数据检索效率，降低数据排序成本
+   - 缺点 : 也会占用内存，降低表的更新速度
+- 那些情况需要创建索引
+   - 主键自动建立唯一索引
+   - 频繁作为查询条件的字段应该创建索引
+   - 查询中与其他表关联的字段，外键关系建立索引
+   - 频繁更新的字段不适合创建索引
+   - 在高并发下倾向创建组合索引
+   - 查询中排序的字段
+   - 查询中统计或者分组字段
+- 不必建立索引
+   - 表记录太少
+   - 经常增删改的表
+   - where 条件里用不到的
+   - 有许多重复字段
+- 性能分析
+   - MySql Query Optimizer
+   - MySql 常见瓶颈 CPU/IO
+   - explain : 查看执行计划
+     - id
+       - id 相同 : 执行顺序由上至下
+       - id 不同 : 如果是子查询，id 的序号会递增，id 值越大优先级越高，越先被执行
+       - id 相同不同，同时存在
+     - select_type : SIMPLE, PRIMERY, SUBQUERY, DERIVED, UNION, UNION RESULT 查询的类型，主要用于区别普通查询、联合查询、子查询等的复杂查询，DERIVED 产生临时表会带来负担
+     - table : 当前操作属于哪张表
+     - type : 访问类型排列 system > const > eq_ref > **ref** > **range** > index > ALL(表明进行了全表扫描)
+       - system 表只有一行记录(等于系统表)，这是const类型的特例
+       - const 表示通过索引一次就找到了，const 用于比较 primary key 或者 unique 索引，因为就匹配一行数据，所以很快
+       - eq_ref 唯一性索引扫描，对于每个索引键，表中只有一条记录与之匹配。常见于主键或唯一索引扫描
+       - ref 非唯一性索引扫描，返回匹配某个单独值的所有行
+       - range 只检索给定范围的行，使用一个索引来选择行
+       - index index 与 ALL 的区别为 index 类型只遍历索引树，如选出所有主键id
+     - possible_keys : 显示可能应用在这张表中的索引，一个或多个。但不一定被查询实际使用
+     - key : 实际使用的索引。如为 NULL 则没有使用索引。**若查询中使用了覆盖索引，则该索引仅出现在key列表中**
+     - key_lens : 表示索引中使用的字节数，可通过该列计算查询中使用的索引的长度
+     - ref : 显示索引的哪一列被使用了，如果可能的话，是一个常数
+     - rows : 大致估计出找到所需记录所需读取的行数
+     - extra : 十分重要的额外信息
+       - using filesort : 产生了内部排序，出现后必须尽快优化
+       - using temporary : 产生了临时表，必须优化
+       - using index : 表示使用了覆盖索引，避免了访问表的数据行
+       - using where : 使用了 where
+       - using join buffer : 使用了连接缓存
+       - imposible where : where 子句值总是 false，不能用来获取任何元组
+- 索引优化
+   - 索引分析 
+     - 单表 : range 类型查询字段后面的索引无效
+     - 两表 : 左连接从右表搜索行，因此要把索引建在右表上
+     - 三表 : 与两表相似，右边两个表都要建索引，小表驱动大表，小表在左大表在右
+   - 索引失效(应该避免)
+     - 最佳左前缀法则，指查询从索引最左列开始并且**不跳过索引中的列**
+     - 不在索引列上做任何操作(计算、函数、类型转换)，如 trim、substr 等函数
+     - 存储引擎不能使用索引中范围条件右边的列，如 name = 'john' and age > 25 and pos = 'manager'
+     - 尽量使用覆盖索引，尽量少用 *
+     - 使用不等于 ( != 或 <> ) 的时候，索引失效
+     - is null 或 is not null 也无法使用索引
+     - like 以通配符开头 ( '%abc...' )，索引失效，如必须使用两边%aa%，则使用覆盖索引解决
+     - 字符串不加单引号，索引失效
+     - 少用 or，用它来连接时会使索引失效
+   - 一般性建议
+- 查询截取分析
+   - 查询优化 : order by 和 group by
+     - 慢查询的开启并捕获
+     - explain + 慢查询分析
+     - show profile 查询SQL在ＭySql服务器里面的执行细节和生命周期情况
+     - SQL数据库服务器的参数调优
+   - 慢查询日志 : 开启后会有性能损失 set global slow_query_log = 1; set global long_query_time = 3;
+   - 批量数据脚本 : 使用函数和存储过程
+   - Show Profile : show profiles; show profile cpu, block-io for query query_id;
+     - converting HEAP to MyISAM 查询结果太大，内存都不够用了往磁盘上搬
+     - creating tmp table 创建临时表
+     - copying to tmp table on disk 把内存中的临时表复制到磁盘
+     - locked 被锁
+   - 全局查询日志 : 测试环境用，记录所有查询日志
+- mysql锁机制
+   - 表锁
+     - show open tables;
+     - lock table 表名字 read(write), 表名字2 read(write);
+     - unlock tables;
+   - 行锁
+     - 索引失效会导致行锁变表锁
+     - 间隙锁 : 当我们用范围条件而不是相等条件检索数据，并请求共享或排它锁时，innoDB会给符合条件的已有数据记录的索引项加锁;　对于键值在条件范围内但并不存在的记录，叫做"间隙(GAP)"。InnoDB 会对这个间隙加锁。
+     - select xxx... fro update 锁定某一行后，其他的操作会被阻塞，直到锁定行的会话提交commit
