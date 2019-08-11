@@ -1,8 +1,12 @@
 ##### 自我介绍
 
-- 你好，我叫舒冲冲，本科和研究生都就读于山东大学，主要技术栈是java，平常一直在linux平台上开发。另外也熟悉c/c++和go语言。最近的一个项目是一个汽车运输公司委托我们帮他们做一个满足交通部jt808, jt1078和苏标ADAS协议的一个平台来送去交通部过检。项目主要包括jt808服务器，jt809服务器，jt1078服务器和web端四个主要部分。我主要负责jt808服务器，jt1078服务器和部分相关的后台前端的开发。后面说以下项目难点和待完成的部分，然后说明自己学到的东西。
+- 你好，我叫舒冲冲，本科和研究生都就读于山东大学，主要技术栈是java，平常一直在linux平台上开发。另外也熟悉c/c++和go语言。最近的一个项目是一个汽车运输公司委托我们帮他们做一个满足交通部jt808, jt1078和苏标ADAS协议的一个平台来送去交通部过检。项目主要包括jt808服务器，jt809服务器，jt1078服务器和web端四个主要部分。我主要负责jt808服务器，jt1078服务器和部分相关的后台前端的开发。后面说以下项目难点和待完成的部分，然后说明自己学到的东西，没被打住就接着说下面的项目 :
+- 主要是为一家阿根廷超市管理系统写商品搜索模块 (主要是输入有关商品的任何信息就可以搜索到商品)，日志分析模块 (主要是用来分析客户的使用率，登录地点，登录时间，改价操作)和参考价计算模块(主要是通过各个超市的改价操作来确定商品的最近价格，然后根据众多超市的价格来给出一个相对合理的价格)。
+- 主要是为山东大学研究生信息管理系统编写了出国管理模块(主要是利用工作流引擎来实现学生出国申请的导师审核、二级学院审核(可能有)、学院审核、研究生院审核，出国状态外加正常归国、提前归国、延期归国等一系列审核操作) 和成绩单打印模块(主要负责研究生中英文成绩单的打印)
 
 ##### 语言并不重要，而且现在java和c++在语法和功能上已经非常相似了
+
+##### 所有项目都收获很多，因为每个都是不同方面的项目
 
 ##### 项目难点 :
 
@@ -16,9 +20,141 @@
 - 熟悉了网络应用的开发
 - 熟悉了音视频编解码方面开发的知识
 - 熟悉了多线程编程的知识
-- 熟悉了多个服务间的信息传输，RPC方面的知识
+- 熟悉了多个服务间的信息传输，RPC 方面的知识
 - 熟悉了服务的容器化部署方面的知识
 - 熟悉了技术的选型和调整，和对多种常用的应用和框架的了解
+
+##### 参考价计算
+
+
+- GMM 高斯混合模型
+- 由于 ~~阿根廷首都布宜诺斯艾利斯分为三大区域 : 核心区、中间区和偏远区，他们的价格可能总体上可能呈现出 : 核心区 > 中间区 > 偏远区~~ 客户反映价格会呈驼峰型可能会有多个峰值 (利用 python 的 matplotlib 库实现了可视化的观察)。因此采用 EM 算法的迭代求解通过**最大似然估计**进行参数估计 (最大似然估计就是让概率分布参数最符合观察到的样本)，然后利用利用GMM估计各个区域的比例和中位数。最后用 k-means 算法做了个对比(k-means 使用的是曼哈顿距离)，来最终确定价格 (通过对各种参数的调节)。
+
+- **优化过程**
+
+  - python 编写，计算速度非常慢
+
+  - java 编写，速度达到 3 小时以内
+
+  - 多线程优化，速度达到 1 小时以内
+
+  - 通过将上个星期的计算结果保存起来，使以后每个星期只用计算当前星期的数据即可，速度基本满足要求
+
+  - 利用 java streamAPI 大大简化了编码过程
+
+    ```java
+    Map<String, Map<Integer, Double>> result = new HashMap<>();
+            Map<String, List<Codigo>> map = list.parallelStream().collect(Collectors.groupingBy(Codigo::getCodigoId));
+            map.forEach((codigo, codigos) -> {
+                Map<Integer, Double> innermap = new HashMap<>();
+                Map<Integer, List<Codigo>> map2 = codigos.parallelStream().collect(Collectors.groupingBy(Codigo::getMerchant));
+                map2.forEach((mer, mers) -> {
+                    Optional<Codigo> c = mers.parallelStream().max(Comparator.comparingInt(Codigo::getTime));
+                    c.ifPresent(c1 -> innermap.put(mer, c1.getPrice()));
+                });
+                result.put(codigo, innermap);
+            });
+    
+    ```
+
+  - 利用**文件映射** (FileChannel + MappedByteBuffer) 加快了文件的读取速度 (因为数据是按文件存的)
+
+  - 调大 --XX:Xmx 来解决堆内存溢出的问题
+
+- EM算法 : 当有部分数据缺失或者无法观察到时，EM算法提供了一个高效的迭代程序用来计算这些数据的最大似然估计。在每一步迭代分为两个步骤：期望（Expectation）步骤和最大化（Maximization）步骤，因此称为EM算法。EM算法通过搜寻使全部数据的似然函数Log(L(Z; h))的期望值最大来寻找极大似然估计
+
+- 对于由参数未知的K个高斯混合模型生成的数据集，利用EM算法可以对这K个高斯分布进行参数估计，并且可以知道两个模型的各自比重。因此还可以用来聚类
+
+- EM算法包括两个过程：
+
+  - E 已知参数 lamda，求概率（期望）P
+  - M 根据算出的P，求新的lamda以使出现P的概率最大
+
+##### 搜索引擎
+
+- **优化过程**
+
+  - 使用 solr 项目太小，完全用不上，而且使得架构变得复杂
+
+  - 使用 solr 的内核 lucene 提供的 API 
+
+    - Directory : 因为数据量很小 : RAMDirectory (mainDirectory, spellDirectory, suggestDirectory)
+    - IndexWriter : 用来处理索引的对象
+      - Term : 最小搜索单元，由两个元素组成 : 词语的内容和文本所在的域
+      - Document : 一条记录
+    - Analyzer : 用来分析特定语言的语法，用来分词。中文IK分词器等，这里通用
+    - SpellChecker : 拼写纠错 spellChecker.suggestSimilar
+    - LuceneSpellCheck 检索数据中是否存在编辑距离与查询单词相近的单词以帮助客户纠正拼写错误
+    - AnalyzingInfixSuggester : 建议器
+
+    - TokenStream 用某种规则 (空格) 分割查询的单词，ts.getAttribute(CharTermAttribute.class);　ts.incrementToken()
+
+    - IndexSearcher, QueryParser, Query, TopDocs, TermQuery
+
+- lucene : 主要是想从商品描述中也可以搜索到商品
+
+  - Lucene中包含了四种基本数据类型，分别是：
+
+    - Index：索引，由很多的Document组成
+    - Document：由很多的Field组成，是Index和Search的最小单位
+    - Field：由很多的Term组成，包括Field Name和Field Value
+    - Term：由很多的字节组成。一般将Text类型的Field Value分词之后的每个最小单元叫做Term
+
+  - 在lucene中，读写路径是分离的。写入的时候创建一个IndexWriter，而读的时候会创建一个IndexSearcher
+
+  - Lucene 查询过程
+  
+    - 在lucene中查询是基于segment。每个segment可以看做是一个独立的subindex，在建立索引的过程中，lucene会不断的flush内存中的数据持久化形成新的segment。多个segment也会不断的被merge成一个大的segment，在老的segment还有查询在读取的时候，不会被删除，没有被读取且被merge的segement会被删除。这个过程类似于LSM数据库的merge过程。下面我们主要看在一个segment内部如何实现高效的查询
+  - 建立倒排链 (根据docid来判断是哪个Document，在被查询的Field的各个term中列出存在此term的docid)，所以倒排本质上就是基于term的反向列表
+    - 如果term非常多，如何快速拿到这个倒排链呢？在lucene里面就引入了term dictonary的概念，也就是term的字典。term字典里我们可以按照term进行排序，那么用一个二分查找就可以定为这个term所在的地址。这样的复杂度是logN，在term很多，内存放不下的时候，效率还是需要进一步提升。可以用一个hashmap，当有一个term进入，hash继续查找倒排链。这里hashmap的方式可以看做是term dictionary的一个index。 从lucene4开始，为了方便实现rangequery或者前缀，后缀等复杂的查询语句，lucene使用FST数据结构来存储term字典，下面就详细介绍下FST的存储结构
+  - **FST : term字典的存储结构 利用 Trie 树**
+    
+    - FST在单term查询上可能相比hashmap并没有明显优势，甚至会慢一些。但是在范围，前缀搜索以及压缩率上都有明显的优势
+      - 在通过FST定位到倒排链后，有一件事情需要做，就是倒排链的合并。因为查询条件可能不止一个，例如上面我们想找name="alan" and age="18"的列表。lucene是如何实现倒排链的合并呢。这里就需要看一下倒排链存储的数据结构
+  - **SkipList : 倒排链的存储结构**
+    
+      - 元素排序的，对应到我们的倒排链，lucene是按照docid进行排序，从小到大
+    - 跳跃有一个固定的间隔，这个是需要建立SkipList的时候指定好
+      - SkipList的层次，这个是指整个SkipList有几层
+  - Term dict index (FST Trie)  --->  Term dict  --->  invert index (倒排索引 SkipList)
+    - 倒排合并    termA  termB  termC
+    
+      1. 在termA开始遍历，得到第一个元素docid = 1
+    2. Set currentDocId = 1
+      3. 在termB中 search(currentDocId) = 1 (返回大于等于currentDocId的一个doc)
+       - 如果currentDocId ==1，继续
+         - 如果currentDocId 和返回的不相等，执行2，然后继续
+    4. 到termC后依然符合，返回结果
+      5. currentDocId = termC的nextItem
+      6. 然后继续步骤3 依次循环。直到某个倒排链到末尾
+    - 整个合并步骤我可以发现，如果某个链很短，会大幅减少比对次数，并且由于SkipList结构的存在，在某个倒排中定位某个docid的速度会比较快不需要一个个遍历。可以很快的返回最终的结果。从倒排的定位，查询，合并整个流程组成了lucene的查询过程，和传统数据库的索引相比，lucene合并过程中的优化减少了读取数据的IO，倒排合并的灵活性也解决了传统索引较难支持多条件查询的问题
+    - **BKDTree**
+    
+      - 在lucene中如果想做范围查找，根据上面的FST模型可以看出来，需要遍历FST找到包含这个range的一个点然后进入对应的倒排链，然后进行求并集操作。但是如果是数值类型，比如是浮点数，那么潜在的term可能会非常多，这样查询起来效率会很低。所以为了支持高效的数值类或者多维度查询，lucene引入类BKDTree。BKDTree是基于KDTree，对数据进行按照维度划分建立一棵二叉树确保树两边节点数目平衡。在一维的场景下，KDTree就会退化成一个二叉搜索树，在二叉搜索树中如果我们想查找一个区间，logN的复杂度就会访问到叶子结点得到对应的倒排链
+    
+      - 如果是多维，kdtree的建立流程会发生一些变化。比如我们以二维为例，建立过程如下 :
+  
+        - 确定切分维度，这里维度的选取顺序是数据在这个维度方法最大的维度优先。一个直接的理解就是，数据分散越开的维度，我们优先切分
+  
+        - 切分点的选这个维度最中间的点
+    
+        - 递归进行步骤1，2，我们可以设置一个阈值，点的数目少于多少后就不再切分，直到所有的点都切分好停止
+    
+        - BKDTree是KDTree的变种，因为可以看出来，KDTree如果有新的节点加入，或者节点修改起来，消耗还是比较大。类似于LSM的merge思路，BKD也是多个KDTREE，然后持续merge最终合并成一个。不过我们可以看到如果你某个term类型使用了BKDTree的索引类型，那么在和普通倒排链merge的时候就没那么高效了所以这里要做一个平衡，一种思路是把另一类term也作为一个维度加入BKDTree索引中
+    - 如何实现返回结果进行排序聚合 : 在lucene4之前需要把结果全部拿到再读取原文进行排序，这样效率较低，还比较占用内存，为了加速lucene实现了fieldcache，把读过的field放进内存中。这样可以减少重复的IO，但是也会带来新的问题，就是占用较多内存。新版本的lucene中引入了DocValues，DocValues是一个基于docid的列式存储。当我们拿到一系列的docid后，进行排序就可以使用这个列式存储，结合一个堆排序进行。当然额外的列式存储会占用额外的空间，lucene在建索引的时候可以自行选择是否需要DocValue存储和哪些字段需要存储
+    - Lucene的代码目录结构
+      - analysis模块主要负责词法分析及语言处理而形成Term
+      - codecs模块主要负责之前提到的一些数据结构的实现，和一些编码压缩算法。包括skiplist，docvalue等
+      - document模块主要包括了lucene各类数据类型的定义实现
+      - index模块主要负责索引的创建，里面有IndexWriter
+      - store模块主要负责索引的读写
+      - search模块主要负责对索引的搜索
+      - geo模块主要为geo查询相关的类实现
+      - util模块是bkd，fst等数据结构实现
+
+
+
+
 
 ##### 为什么使用 mongodb 
 
