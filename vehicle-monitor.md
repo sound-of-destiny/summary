@@ -234,6 +234,20 @@
 - 如果设备大于一定数量后，jt808 可能会集群部署，用 MQ 可以统一数据的处理
 - ~~不用考虑消息被重复消费 (消息被消费时的幂等性)~~ 先根据 timeStamp 查一下，如果数据存在，就不插入了
 
+##### 消息队列的组成
+
+- Broker : 消息服务器，作为server提供消息核心服务
+- Producer : 消息生产者，业务的发起方，负责生产消息传输给broker
+- Consumer : 消息消费者，业务的处理方，负责从broker获取消息并进行业务逻辑处理
+- Topic : 主题，发布订阅模式下的消息的统一汇集地，不同生产者向topic发送消息，由MQ服务器发送到不同的订阅者，实现消息的广播
+- Queue : 队列，PTP模式下特定生产者向特定queue发送消息，消费者订阅特定的queue完成指定消息的接收
+- Message : 消息体，根据不同通信协议定义的固定格式进行编码的数据包，来封装业务数据，实现消息的传输
+
+##### 消息中间件模式分类
+
+- 点对点 : PTP点对点:使用queue作为通信载体
+- 发布/订阅 : Pub/Sub发布订阅（广播）：使用topic作为通信载体
+
 ##### 为什么使用 RabbitMQ 
 
 - 使用简单，成熟的 API 文档，良好的管理界面
@@ -291,9 +305,7 @@ RabbitMQ 集群
 ##### 为什么要用 Redis
 
 - 纯内存操作
-
 - 单线程
-
 - 高效的数据结构
 
   - 特殊的字符串结构 SDS { int len; int free; char buf[] } 二进制安全
@@ -301,36 +313,29 @@ RabbitMQ 集群
   - **跳跃表 zskipList 是有序集合 Zset 的底层结构**
   - 压缩列表 zipList 是 Redis 为节约内存而开发的，是列表键和字典键的底层实现之一
   - String : int、raw，List : zipList、linkedList，Hash : zipList、hashtable，Set : intSet、hashtable，Zset : ziplist、zskiplist
-
 - Redis 会将每一个设置了 expire 的键存储在一个独立的字典中，Redis 默认每秒进行十次过期扫描，过期扫描不会扫描所有过期字典中的 key，而是采用了一种简单的贪心策略
-
 - redis 事务的 CAS : **多客户端同时并发写**一个 key
 
   - 可以基于 zookeeper 实现分布式锁
   - 写入缓存的数据，都是从 mysql 里查出来的，都得写入 mysql 中，写入 mysql 中的时候必须保存一个时间戳，从 mysql 查出来的时候，时间戳也查出来
-
 - redis cluster 介绍
 
   - 自动将数据进行分片，每个 master 上放一部分数据
   - 供内置的高可用支持，部分 master 不可用时，还是可以继续工作的
   - redis cluster 节点间采用 gossip 协议进行通信，每个节点都有一个专门用于节点间通信的端口，就是自己提供服务的端口号+10000，gossip 协议包含多种消息，包含 `ping`,`pong`,`meet`,`fail` 等等
-
 - 一致性 hash 算法 :
 
   - 一致性 hash 算法将整个 hash 值空间组织成一个虚拟的圆环，整个空间按顺时针方向组织，下一步将各个 master 节点（使用服务器的 ip 或主机名）进行 hash。这样就能确定每个节点在其哈希环上的位置。将哈希空间 [0, 2n-1] 看成一个哈希环，每个服务器节点都配置到哈希环上。每个数据对象通过哈希取模得到哈希值之后，存放到哈希环中顺时针方向第一个**大于等于**该哈希值的节点上
   - 一致性哈希算法在节点太少时，容易因为节点分布不均匀而造成**缓存热点**的问题。为了解决这种热点问题，一致性 hash 算法引入了虚拟节点机制，即对每一个节点计算多个 hash，每个计算结果位置都放置一个虚拟节点。这样就实现了数据的均匀分布，负载均衡
   - redis cluster 有固定的 `16384` 个 hash slot，对每个 `key` 计算 `CRC16` 值，然后对 `16384`取模，可以获取 key 对应的 hash slot
   - redis cluster 中每个 master 都会持有部分 slot，比如有 3 个 master，那么可能每个 master 持有 5000 多个 hash slot。hash slot 让 node 的增加和移除很简单，增加一个 master，就将其他 master 的 hash slot 移动部分过去，减少一个 master，就将它的 hash slot 移动到其他 master 上去，任何一台机器宕机，另外两个节点，不影响的。因为 key 找的是 hash slot，不是机器
-
 - sentinel，中文名是哨兵。哨兵是 redis 集群机构中非常重要的一个组件，主要有以下功能：
 
   - 集群监控：负责监控 redis master 和 slave 进程是否正常工作
   - 消息通知：如果某个 redis 实例有故障，那么哨兵负责发送消息作为报警通知给管理员
   - 故障转移：如果 master node 挂掉了，会自动转移到 slave node 上
   - 配置中心：如果故障转移发生了，通知 client 客户端新的 master 地址
-
 - redis 过期策略是：**定期删除 + 惰性删除**
-
 - redis 内存淘汰机制有以下几个：
 
   - noeviction: 当内存不足以容纳新写入数据时，新写入操作会报错，这个一般没人用
@@ -339,35 +344,33 @@ RabbitMQ 集群
   - volatile-lru：当内存不足以容纳新写入数据时，在**设置了过期时间的键空间**中，移除最近最少使用的 key（这个一般不太合适）
   - volatile-random：当内存不足以容纳新写入数据时，在**设置了过期时间的键空间**中，**随机移除**某个 key
   - volatile-ttl：当内存不足以容纳新写入数据时，在**设置了过期时间的键空间**中，有**更早过期时间**的 key 优先移除
-
 - redis 和 memcached 有啥区别
 
   - redis 支持复杂的数据结构
 
   - redis 支持原生集群模式 
-
 - redis 的线程模型 : redis 内部使用文件事件处理器 `file event handler`，这个文件事件处理器是单线程的，所以 redis 才叫做单线程的模型。它采用 IO 多路复用机制同时监听多个 socket，根据 socket 上的事件来选择对应的事件处理器进行处理
-
 - 文件事件处理器的结构包含 4 个部分
 
   - 多个 socket
   - IO 多路复用程序
   - 文件事件分派器
   - 事件处理器（连接应答处理器、命令请求处理器、命令回复处理
-
 - redis 分布式锁和 zk 分布式锁的对比 
 
   - redis 分布式锁，其实**需要自己不断去尝试获取锁**，比较消耗性能。
   - zk 分布式锁，获取不到锁，注册个监听器即可，不需要不断主动尝试获取锁，性能开销较小
   - redis 获取锁的那个客户端 出现 bug 挂了，那么只能等待超时时间之后才能释放锁，znode 就没了，此时就自动释放锁
-  
 - bgsave的原理是什么 : fork和cow。fork是指redis通过创建子进程来进行bgsave操作，cow指的是copy on write，子进程创建后，父子进程共享数据段，父进程继续提供读写服务，写脏的页面数据会逐渐和子进程分离开来
-
 - 是否使用过Redis集群，集群的原理是什么
 
   - Redis Sentinal着眼于高可用，在master宕机时会自动将slave提升为master，继续提供服务。
-
-  - Redis Cluster着眼于扩展性，在单个redis内存不足时，使用Cluster进行分片存储。
+- Redis Cluster着眼于扩展性，在单个redis内存不足时，使用Cluster进行分片存储。
+- redis 事务
+  - multi，开启Redis的事务，置客户端为事务态
+  - exec，提交事务，执行从multi到此命令的命令队列，置客户端为非事务态
+  - discard，取消事务，置客户端为非事务态
+  - watch，监视键值对，作用时如果事务提交exec时发现监视的对象发生变化，事务将被取消
 
 ##### 为什么使用 nginx
 
