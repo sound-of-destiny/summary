@@ -122,5 +122,5 @@ C/C++
     - new() : placement new  Complex* pc = new(buf)Complex(1, 2); buf为已经分配的内存
     - ::operator new()  ::operator delete() 全局函数
     - allocator.allocate()  allocator.deallocate()
-
-  - malloc 分配的内存必须是16的倍数
+- malloc 分配的内存必须是16的倍数
+- 在C中，无符号数与有符号数进行运算时，系统会自动将有符号数直接当做无符号数处理
