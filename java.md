@@ -1,6 +1,32 @@
 java
 
 - 反射 : Java 反射机制在程序**运行时**，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意一个方法和属性。这种 **动态的获取信息** 以及 **动态调用对象的方法** 的功能称为 **java 的反射机制**
+  - private 有什么用 : private想表达的不是“安全性”的意思，而是**面向对象的封装概念**，如不允许外部直接通过 new 来创建对象，那么构造方法必须是private
+  - 优点 : **使程序更灵活、提高程序复用率**
+  - 缺点 : **速度慢、使代码复杂、有副作用**
+  - 使用反射 : 
+    - Class.forName()、getClass() 和 XXX.class 来获取类对象
+    - 然后通过 getMethods()、getFields() 等来获取 Method 数组和 Field 数组
+    - 调用 invoke 方法来调用目标方法或者调用 set() 或 get() 方法来获取或设置 field 参数
+- HashMap
+  - 负载因子 loadFactor 为何是 0.75 : 小了空间利用率差，大了容易造成哈希冲突
+  - put流程 :
+    - 判断 Node 数组 table 是否为空，为空就进行 resize (Initializes or doubles table size) 操作
+    - 判断 hash 值对应的 table 中的元素是否为空，为空调用 newNode (Create a regular (non-tree) node) 操作，生成一个常规 Node 节点
+    - hash 值对应的 table 中的元素不为空，则
+      - 判断是否存在原来的值
+      - 利用 instanceof 判断是否为 TreeNode，如果是则调用 putTreeVal() 方法
+      - 不是 TreeNode 则会循环直到到达链表尾生成新的节点 newNode()
+      - 同时判断是否超过 TREEIFY_THRESHOLD 如果是则调用 treeifyBin (Replaces all linked nodes in bin at index for given hash) 来将链表转化为红黑树
+      - 更换新值
+    - 判断 size 是否超过 threshold 是则调用 resize (Initializes or doubles table size) 操作来双倍化 table
+  - resize流程 : 首先计算 newCap 和 newThr，然后拆分红黑树或把链表根据高位 hash 值分为两条
+    - 判断 oldCap 是否大于 0
+    - 判断 oldThr 是否大于 0
+    - 判断 newThr 是否等于 0
+- ConcurrentHashMap
+  - MIN_TREEIFY_CAPACITY = 64
+  - 我们发现table数组是被volatile关键字修饰的，这就代表我们不需要担心table数组的线程可见性问题，也就没有必要再加锁来实现并发了
 - java程序的初始化工作可以在许多不同的代码块中来完成，他们的执行顺序为 : 父类静态变量、父类静态代码块、子类静态变量、子类静态代码块、父类非静态变量、父类非静态代码块、父类构造函数、子类非静态变量、子类非静态代码块、子类构造函数
 - 子类可以通过super关键字来显式地调用父类的构造函数，当父类没有提供无参构造函数时，子类的构造函数中必须显式地调用父类的构造函数
 - java线程的6种状态
@@ -74,3 +100,25 @@ java
   - 接口是实现(implements)，抽象类是继承(extends)，可以多实现但不能多继承
 - 父类没有**无参**的构造函数，所以子类需要在自己的构造函数中显式调用父类的构造函数
 - Spring 只帮我们管理单例模式 Bean 的**完整**生命周期，对于 prototype 的 bean ，Spring 在创建好交给使用者之后则不会再管理后续的生命周期
+- jdk spi
+  - ServiceLoader.load(xxx.class)
+  - META/service目录下
+- RPC的原理和框架
+  - RPC的程序包括5个部分 : **User <-> User-stub <-> RPCRuntime <-> Server-stub <-> Server**
+  - user-stub 负责将调用的**接口、方法和参数**通过约定的协议规范进行编码并通过本地的 RPCRuntime 实例传输到远端的实例。远端的 ROCRuntime 实例收到请求后交给 server-stub 进行解码后发起本地端调用，调用结果再返回给 user 端
+  - RPC框架的核心技术点
+    - 服务暴露 : 代码生成的方式对跨语言平台 RPC 框架而言是必然的选择，而对于同一语言平台的 RPC 则可以通过共享接口定义来实现
+    - 远程代理对象 : 通过动态代理来实现
+    - 通信
+    - 序列化
+- 零拷贝 java : transferTo()
+  - 本来的流程 : 硬盘 >>DMA>> kernel buffer >>CPU>> user buffer >>CPU>> kernel socket buffer >>DMA>> NIC buffer
+  - 使用 sendFile() 系统调用的流程 : 硬盘 >>DMA>> kernel buffer >>DMA>> NIC buffer，**数据未被拷贝到套接字缓冲区。取而代之的是，只有包含关于数据的位置和长度的信息的描述符被追加到了套接字缓冲区。DMA 引擎直接把数据从内核缓冲区传输到协议引擎，从而消除了剩下的最后一次 CPU 拷贝**
+- 快速失败
+  - 在用迭代器遍历一个集合对象时，如果遍历过程中对集合对象的内容进行了修改（增加、删除、修改），则会抛出Concurrent Modification Exception
+  - 原理：迭代器在遍历时直接访问集合中的内容，并且在遍历过程中使用一个 modCount 变量。集合在被遍历期间如果内容发生变化，就会改变modCount的值。每当迭代器使用hashNext()/next()遍历下一个元素之前，都会检测modCount变量是否为expectedmodCount值，是的话就返回遍历；否则抛出异常，终止遍历
+  - 这里异常的抛出条件是检测到 modCount！=expectedmodCount 这个条件。如果集合发生变化时修改modCount值刚好又设置为了expectedmodCount值，则异常不会抛出。因此，不能依赖于这个异常是否抛出而进行并发操作的编程，这个异常只建议用于检测并发修改的bug
+-  安全失败
+  - 采用安全失败机制的集合容器，在遍历时不是直接在集合内容上访问的，而是先复制原有集合内容，在拷贝的集合上进行遍历
+  - 原理：由于迭代时是对原集合的拷贝进行遍历，所以在遍历过程中对原集合所作的修改并不能被迭代器检测到，所以不会触发Concurrent Modification Exception
+  - 缺点：基于拷贝内容的优点是避免了Concurrent Modification Exception，但同样地，迭代器并不能访问到修改后的内容，即：迭代器遍历的是开始遍历那一刻拿到的集合拷贝，在遍历期间原集合发生的修改迭代器是不知道的

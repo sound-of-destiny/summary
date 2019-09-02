@@ -6,7 +6,7 @@
 
 **1，如何控制多线程执行顺序**
 
-- 通过 join 方法去保证多线程的顺序性， join调用 Object 的 wait 方法去等待子线程的执行
+- 通过 join 方法去保证多线程的顺序性， **join调用 Object 的 wait 方法去等待子线程的执行**
 - Excutors.newSingleThreadExcutor(); FIFO 队列执行 submit 的线程
 
 **2，volatile 和 synchronize 和 atomic 的区别**
@@ -32,7 +32,7 @@
 
 - synchronized 基于 JVM，lock 是 Java API
 
-- lock 可以主动去释放锁而 synchronized 则必须等待代码块执行完或执行线程出现异常
+- lock 可以主动去释放锁而 synchronized 则必须等待代码块执行完或**执行线程出现异常**
 
 - ReentrantLock 和 synchronized 就是典型的可重入锁(递归锁)
 
@@ -50,7 +50,7 @@
   - ReentrantReadWriteLock
 - 读锁(共享锁)，读，多个线程可以读
   - 写锁(排它锁)，写，一个线程可以写
-- lock 绑定多个条件 Condition 分组唤醒需要唤醒的线程，可以精确唤醒
+- **lock 绑定多个条件 Condition 分组唤醒需要唤醒的线程，可以精确唤醒**
 
 **4，分布式锁的实现原理**
 
@@ -124,7 +124,7 @@
 
 4， BlockingQueue, put(), take() 
 
-LinkedTransferQueue是一个由链表数据结构构成的无界阻塞队列，由于该队列实现了TransferQueue接口，与其他阻塞队列相比主要有以下不同的方法：
+**LinkedTransferQueue**是一个由链表数据结构构成的无界阻塞队列，由于该队列实现了TransferQueue接口，与其他阻塞队列相比主要有以下不同的方法：
 
 - **transfer(E e)** 如果当前有线程（消费者）正在调用take()方法或者可延时的poll()方法进行消费数据时，生产者线程可以调用transfer方法将数据传递给消费者线程。如果当前没有消费者线程的话，生产者线程就会将数据插入到队尾，直到有消费者能够进行消费才能退出
 - **tryTransfer(E e)** tryTransfer方法如果当前有消费者线程（调用take方法或者具有超时特性的poll方法）正在消费数据的话，该方法可以将数据立即传送给消费者线程，如果当前没有消费者线程消费数据的话，就立即返回`false`。因此，与transfer方法相比，transfer方法是必须等到有消费者线程消费数据时，生产者线程才能够返回。而tryTransfer方法能够立即返回结果退出
@@ -356,21 +356,21 @@ DelayQueue是一个存放实现Delayed接口的数据的无界阻塞队列，只
 
 ##### 19，Excutors
 
-- newFixedThreadPool : corePoolSize n, maximumPoolSize n, keepAlivedTime 0, LinkedBlockingQueue
+- newFixedThreadPool : corePoolSize n, maximumPoolSize n, keepAlivedTime 0, **LinkedBlockingQueue**
 
 - newWorkStealingPool : ForkJoinPool (java8 新增，使用目前机器上可用处理器数作为他的并行级别)
 
-- newSingleThreadExcutor : corePoolSize 1, maximumPoolSize 1, keepAlivedTime 0, LinkedBlockingQueue
+- newSingleThreadExcutor : corePoolSize 1, maximumPoolSize 1, keepAlivedTime 0, **LinkedBlockingQueue**
 
-- newCachedThreadPool : corePoolSize 0, maximumPoolSize Integer.MAX_VALUE, keepAlivedTime 60, SynchronousQueue
+- newCachedThreadPool : corePoolSize 0, maximumPoolSize Integer.MAX_VALUE, keepAlivedTime 60, **SynchronousQueue**
 
 -  newSingleThreadScheduledExecutor : ScheduledThreadPoolExecutor
 
-- newScheduledThreadPool : ScheduledThreadPoolExecutor
+- newScheduledThreadPool : **ScheduledThreadPoolExecutor**
 
 - 线程池线程数的合理配置
 
-  - CPU 密集型 : 服务器 CPU 核心数
+  - **CPU 密集型 : 服务器 CPU 核心数**
 
   - IO 密集型 : 
 
@@ -419,7 +419,7 @@ accept queue : server 发送 SYNC + ACC 后 client 返回 ACC，双方变为 EST
 Channel 是 Netty 抽象出来的网络I/O读写相关的接口，为什么不使用 JDK NIO 原生的 Channel 呢：
 
 - JDK 的 SocketChannel 和 ServerSocketChannel 没有统一的 Channel 接口供业务开发者使用，对于用户而言，没有统一的操作视图，使用起来并不方便
-- JDK 的 SocketChannel 和 ServerSocketChannel 的主要职责就是网络I/O操作，由于它们是SPI类接口，由具体的虚拟机厂家来提供，所以通过继承SPI功能类来扩展其功能的难度很大；直接实现 ServerSocketChannel 和 SocketChannel 抽象类，其工作量和重新开发一个新的 Channel 功能类是差不多的
+- **JDK 的 SocketChannel 和 ServerSocketChannel 的主要职责就是网络I/O操作，由于它们是SPI类接口**，由具体的虚拟机厂家来提供，所以通过继承SPI功能类来扩展其功能的难度很大；直接实现 ServerSocketChannel 和 SocketChannel 抽象类，其工作量和重新开发一个新的 Channel 功能类是差不多的
 - Netty 的 Channel 需要能够跟 Netty 的整体架构融合在一起，例如I/O模型、基于ChannelPipeline 的定制模型，以及基于元数据描述配置化的TCP参数等，这些 JDK 的SocketChannel 和 ServerSocketChannel 都没有提供，需要重新封装
 - 自定义的Channel，功能实现更加灵活
 
@@ -431,7 +431,7 @@ AQS内部维护着一个FIFO的队列，该队列就是用来实现线程的并�
 
 Node 的结构 :
 
-- waitStatus：表示节点的状态，其中包含的状态有：
+- **waitStatus**：表示节点的状态，其中包含的状态有：
   - *CANCELLED*：值为1，表示当前节点被取消；
   - *SIGNAL*：值为-1，表示当前节点的的后继节点将要或者已经被阻塞，在当前节点释放的时候需要unpark后继节点；
   - *CONDITION*：值为-2，表示当前节点在等待condition，即在condition队列中；
@@ -440,18 +440,18 @@ Node 的结构 :
 - *prev*：前继节点；
 - *next*：后继节点；
 - *nextWaiter*：存储condition队列中的后继节点；
-- *thread*：当前线程。
+- ***thread***：当前线程。
 
 AQS 获取独占锁的实现 :
 
-- acquire 方法
+- **acquire** 方法
   - 尝试获取独占锁
   - 获取成功则返回，否则执行步骤3
   - addWaiter方法将当前线程封装成Node对象，并添加到队列尾部
   - 自旋获取锁，并判断中断标志位。如果中断标志位为`true`，执行步骤5，否则返回
   - 设置线程中断
 - tryAcquire 方法
-- addWaiter 方法 : 根据当前线程创建一个 Node 对象，然后添加到队列尾部
+- **addWaiter** 方法 : 根据当前线程创建一个 Node 对象，然后添加到队列尾部
 - acquireQueued 方法 : 循环的尝试获取锁，直到成功为止，最后返回中断标志位
 
 ##### 24，树
@@ -514,7 +514,7 @@ AQS 获取独占锁的实现 :
 - 强 : 就算是出现了 OOM 也不会对该对象进行回收
 - 软 : 在内存不够时就会被回收，内存够时不会被回收
 - 弱 : 在进行一次 GC 后就被回收
-- 虚 : 如果一个对象仅持有虚引用，那么他就和没有任何引用一样，必须和引用队列来联合使用
+- 虚 : 如果一个对象仅持有虚引用，那么他就和没有任何引用一样，**必须和引用队列来联合使用**
 
 ##### 28，SMP, MMP, NUMA
 
@@ -631,16 +631,16 @@ JVMTI agent 会在 debug 连接时加载到 debugee 的 JVM 中。debuger 通过
 ##### 28，keepalive实现虚拟IP + IP偏移
 
 - 虚拟IP : 就是一个未分配给真实主机的IP，也就是说对外提供数据库服务器的主机除了有一个真实IP外还有一个虚IP，使用这两个 IP 中的任意一个都可以连接到这台主机，所有项目中数据库链接一项配置的都是这个虚IP，当服务器发生故障无法对外提供服务时，动态将这个虚拟IP切换到备用主机。这个切换的过程我们称之为**IP漂移**
-- 其实现原理主要是靠 TCP/IP 的 ARP 协议。因为 IP 地址只是一个逻辑 地址，在以太网中 MAC 地址才是真正用来进行数据传输的物理地址，每台主机中都有一个 ARP缓存，存储同一个网络内的IP地址与 MAC 地址的对应关系，以太网中的主机发送数据时会先从这个缓存中查询目标 IP 对应的MAC地址，会向这个 MAC 地址发送数据。操作系统会自动维护这个缓存。这就是整个实现的关键
+- **其实现原理主要是靠 TCP/IP 的 ARP 协议**。因为 IP 地址只是一个逻辑 地址，在以太网中 MAC 地址才是真正用来进行数据传输的物理地址，每台主机中都有一个 ARP缓存，存储同一个网络内的IP地址与 MAC 地址的对应关系，以太网中的主机发送数据时会先从这个缓存中查询目标 IP 对应的MAC地址，会向这个 MAC 地址发送数据。操作系统会自动维护这个缓存。这就是整个实现的关键
 - 我们可以通过 Keepalived 来实现这个过程。 Keepalived 是一个基于 **VRRP 协议（Virtual Router Redundancy Protocol，即虚拟路由冗余协议）**来实现的LVS（负载均衡器）服务高可用方案，可以利用其来避免单点故障
 - 一个 LVS 服务会有2台服务器运行 Keepalived，一台为主服务器（MASTER），另一台为备份服务器（BACKUP），但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，这时就需要根据 VRRP 的优先级来选举一个 backup 当 master，保证路由器的高可用，继续提供服务，从而保证了高可用性
 
 #####　29，造成死锁的四个必要条件
 
 - 互斥
-- 占有且等待
-- 不可强行占有
-- 循环等待条件
+- 占有并等待
+- 不可抢占
+- 循环等待
 
 ##### 30，HashMap
 
@@ -658,7 +658,7 @@ JVMTI agent 会在 debug 连接时加载到 debugee 的 JVM 中。debuger 通过
   - 桶的树化阈值：即链表转成红黑树的阈值，在存储数据当链表长度 > 该值时，则将链表转换成红黑树  8
   - 桶的链表还原阈值：即 红黑树转为链表的阈值，当在扩容resize()时（此时HashMap的数据存储位置会重新计算），在重新计算存储位置后，当原有的红黑树内数量 < 6时，则将 红黑树转换成链表
   - 最小树形化容量阈值：即 当哈希表中的容量 > 该值时，才允许树形化链表 （即 将链表 转换成红黑树）。否则，若桶内元素太多时，则直接扩容，而不是树形化  64
-- **真正初始化哈希表（初始化存储数组table）是在第1次添加键值对时，即第1次调用put（）时**
+- **真正初始化哈希表（初始化存储数组table）是在第1次添加键值对时，即第1次调用put()时**
 - 为什么不直接采用经过hashCode（）处理的哈希码 作为 存储数组table的下标位置
 
   - 容易出现 哈希码 与 数组大小范围不匹配的情况，即 计算出来的哈希码可能 不在数组大小范围内，从而导致无法匹配存储位置
@@ -708,7 +708,7 @@ JVMTI agent 会在 debug 连接时加载到 debugee 的 JVM 中。debuger 通过
 
 ##### 35，聚集索引
 
-- 一个聚集索引定义了表中数据的物理存储顺序。如何理解聚集索引呢，好比一个电话本，比如一个电话本是按照姓氏排序，并且电话号码紧跟着后面。因为聚集索引决定了表中数据的物理存储顺序，那么一个表则有且只有一个聚集索引。一个聚集索引可以包含多个列。好比一个电话本是基于名字，姓氏同时排序
+- 一个聚集索引定义了表中数据的物理存储顺序。如何理解聚集索引呢，好比一个电话本，比如一个电话本是按照姓氏排序，并且电话号码紧跟着后面。**因为聚集索引决定了表中数据的物理存储顺序，那么一个表则有且只有一个聚集索引**。一个聚集索引可以包含多个列。好比一个电话本是基于名字，姓氏同时排序
 - Innodb的存储索引是基于B+tree，理所当然，聚集索引也是基于B+tree。与非聚集索引的区别则是，聚集索引既存储了索引，也存储了行值。当一个表有一个聚集索引，它的数据是存储在索引的叶子页（leaf pages）。因此innodb也能理解为**基于索引的表**
 - 缺点
   - 如果一个很大的聚集索引被定义。那么所有的次级索引也会显而易见的大，因为次级索引存储了聚集索引的key。因为数据的存储方式，次级索引的查找需要两次
@@ -718,7 +718,6 @@ JVMTI agent 会在 debug 连接时加载到 debugee 的 JVM 中。debuger 通过
 ##### 36，设计一个靠谱的消息中间件 : 消息中间件本质上就是一种很简单的数据结构——队列
 
 - 我们需要一个类似于微服务里头的注册中心的模块，来实现服务发现的功能(保存注册端的ip和端口，所用协议，是否使用TLS/SSL加密)
-
 - 作为一个靠谱的中间件，你必须支持集群部署，这样才能实现可靠、高效
 - 一个Virtual Host，用来隔离不同的应用
 - 确定是push还是pull
@@ -726,3 +725,28 @@ JVMTI agent 会在 debug 连接时加载到 debugee 的 JVM 中。debuger 通过
 - 消息的时序性
 - 内存还是磁盘
 - 类似于netty的一个推送端，向所有订阅过的此Topic的客户端发送消息
+
+##### 37，Mysql索引的分类
+
+- 从数据结构角度
+  - B+树索引
+  - hash索引 
+    - 只能满足"=", "IN", 和"<=>, !="查询，不能使用范围查询 
+    - 检索效率非常高，可以一次定位，所以效率远高于B+树索引
+    - 只有memory存储引擎显式支持hash索引
+  - FULLTEXT(全文索引) 索引
+  - R树索引 : 用于对GIS数据类型创建SPATIAL索引
+- 从物理存储角度
+  - 聚集索引
+  - 非聚集索引
+- 从逻辑角度
+  - 单列索引 (普通索引)
+  - 多列索引 (复合索引、联合索引) : 在多个字段上创建的索引，遵循最左匹配原则
+  - 主键索引 : 主键索引是一种特殊的唯一索引，不允许有空值
+  - 唯一索引或者非唯一索引
+  - 空间索引
+
+#####　38，like 前缀
+
+​		对于 like 前缀，MySQL 底层实际上是使用了一个补全策略来使用索引的，比如这里 `first_name like 'rMq%';`，MySQL 会将其补全为两条数据：rMqAAAAA 和 rMqzzzzz，后面补全部分的长度为当前字段的最大长度。在使用索引查询时，MySQL 就使用这两条数据进行索引定位，最后需要的结果集就是这两个定位点的中间部分的数据
+

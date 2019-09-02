@@ -242,7 +242,7 @@ Kubernetes
 
 Istio :
 
-- service mesh
+- service mesh : **服务网格是用于处理服务间通信的专用基础设施层**
   - Kubernetes 的本质是应用的生命周期管理，具体来说就是部署和管理（扩缩容、自动恢复、发布）
   - Kubernetes 为微服务提供了可扩展、高弹性的部署和管理平台
   - Service Mesh 的基础是透明代理，通过 sidecar proxy 拦截到微服务间流量后再通过控制平面配置管理微服务的行为
@@ -259,6 +259,13 @@ Istio :
   - EDS 设置哪些实例（Endpoint）属于这些服务（Cluster）
   - LDS 设置实例上监听的端口以配置路由
   - RDS 最终服务间的路由关系，应该保证最后更新 RDS
+  - LDS (监听器发现服务)
+  - RDS (路由发现服务)
+  - CDS (集群发现服务)
+  - EDS (端点发现服务)
+  - SDS (秘钥发现服务)
+  - ADS (聚合发现服务)
+  - HDS (健康发现服务)
 - Enovy
   - **Downstream（下游）**：下游主机连接到 Envoy，发送请求并接收响应，即发送请求的主机
   - **Upstream（上游）**：上游主机接收来自 Envoy 的连接和请求，并返回响应，即接受请求的主机
@@ -274,3 +281,21 @@ Istio :
   - 策略控制：通过 Mixer 组件和各种适配器来实现，实现访问控制系统、遥测捕获、配额管理和计费等
   - 可观测性：通过 Mixer 来实现
   - 安全认证：Citadel 组件做密钥和证书管理
+- Kubernetes Ingress vs Istio Gateway
+  - kubernetes 中的 Ingress 资源对象跟 Istio Service Mesh 中的 Gateway 的功能类似，都是负责集群南北流量 (从集群外部进入集群内部的流量)
+  - kube-proxy 只能路由 kubernetes 集群内部的流量，而我们知道 kubernetes 集群的 pod 位于由 CNI 创建的内网络中，集群外部是无法直接与其通信的，因此 kubernetes 中创建了 ingress 这个资源对象，他由位于 kubernetes 边缘节点 (这样的节点可以是很多个也可以是一组) 的 ingress controller 驱动，ingress 必须对接各种 ingress controller 驱动，比如 nginx ingress controller、traefix。ingress **只适用于 HTTP 流量**
+  - Istio Gateway 描述的负载均衡器用于承载进出网格边缘的连接。**该规范中描述了一系列开放端口和这些端口所使用的协议、负载均衡的SNI配置等内容**。Gateway是一种CRD扩展，他同时复用了 Envoy proxy 的能力
+- 控制平面
+  - 不直接解析数据包
+  - 与数据平面中的代理通信，下发策略和配置
+  - 负责网格行为的可视化
+  - 通常提供API或者命令行工具用于配置版本管理，便于持续集成和部署
+- 数据平面
+  - 通常是按无状态目标设计的，但实际上为了提高流量转发性能，需要缓存一些数据，因此无状态也是有争议的
+  - 直接处理入站和出站数据包，转发、路由、健康检查、负载均衡、认证、鉴权、产生监控数据等
+  - 对应用来说透明，可以做到无感知部署
+- 为服务网格选择入口网关
+  - NodePort
+  - LoadBalancer
+  - Kubernetes Ingress
+  - Istio Gateway

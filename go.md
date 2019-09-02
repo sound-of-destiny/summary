@@ -14,18 +14,18 @@ Go
 - 支持多重赋值 i, j = j, i 
 - 向channel写入数据通常会导致程序阻塞，直到有其他goroutine从这个channel中读取数据。如果channel之前没有写入数据，那么从channel中读取数据也会导致程序阻塞，直到channel中被写入数据为止
 - go语言直接在语言级别支持select关键字，用于处理IO多路复用问题。select { case ch<- 0; case <- ch; default }
-- Gosched() 让出goroutine时间片
-- 同步锁 : sync.Mutex，sync.RWMutex
+- **Gosched() 让出goroutine时间片**
+- **同步锁 : sync.Mutex，sync.RWMutex**
 - tcp连接 : net.Dial("tcp", "127.0.0.1":10000)
 - udp连接 : net.Dial("udp", "127.0.0.1:12345")
 - icmp连接 : net.Dial("ip4:icmp", "www.baidu.com")
 - go反射 : reflect.Valueof().Elem()
 - 协程
-  - 能够在单一的系统线程中模拟多个任务的并发执行
-  - 在一个特定时间只有一个任务在运行，即并非真正的并发执行
-  - 每个协程都有自己的堆栈和局部变量
+  - **能够在单一的系统线程中模拟多个任务的并发执行**
+  - **在一个特定时间只有一个任务在运行，即并非真正的并发执行**
+  - **每个协程都有自己的堆栈和局部变量**
 - go 内存管理
-  - Golang运行时的内存分配算法主要源自 Google 为 C 语言开发的TCMalloc算法，全称Thread-Caching Malloc。核心思想就是把内存分为多级管理，从而降低锁的粒度。它将可用的堆内存采用二级分配的方式进行管理 : 每个线程都会自行维护一个独立的内存池，进行内存分配时优先从该内存池中分配，当内存池不足时才会向全局内存池申请，以避免不同线程对全局内存池的频繁竞争
+  - Golang运行时的内存分配算法主要源自 Google 为 C 语言开发的**TCMalloc算法，全称Thread-Caching Malloc**。**核心思想就是把内存分为多级管理，从而降低锁的粒度。它将可用的堆内存采用二级分配的方式进行管理 : 每个线程都会自行维护一个独立的内存池，进行内存分配时优先从该内存池中分配，当内存池不足时才会向全局内存池申请，以避免不同线程对全局内存池的频繁竞争**
   - Go在程序启动的时候，会先向操作系统申请一块内存（注意这时还只是一段虚拟的地址空间，并不会真正地分配内存），切成小块后自己进行管理。申请到的内存块被分配了三个区域，在X64上分别是512MB，16GB，512GB大小。
     - arena区域就是我们所谓的堆区，Go动态分配的内存都是在这个区域，它把内存分割成8KB大小的页，一些页组合起来称为mspan
     - bitmap区域标识arena区域哪些地址保存了对象，并且用4bit标志位表示对象是否包含指针、GC标记信息。bitmap中一个byte大小的内存对应arena区域中4个指针大小（指针大小为 8B ）的内存，所以bitmap区域的大小是512GB/(4*8B)=16GB
@@ -33,3 +33,19 @@ Go
   - 内存管理单元
     - mspan : Go中内存管理的基本单元，是由一片连续的8KB的页组成的大块内存。注意，这里的页和操作系统本身的页并不是一回事，它一般是操作系统页大小的几倍。一句话概括：mspan是一个包含起始地址、mspan规格、页的数量等内容的双端链表。每个mspan按照它自身的属性Size Class的大小分割成若干个object，每个object可存储一个对象。并且会使用一个位图来标记其尚未使用的object。属性Size Class决定object大小，而mspan只会分配给和object尺寸大小接近的对象，当然，对象的大小要小于object大小。Go1.9.2里`mspan`的`Size Class`共有67种，每种`mspan`分割的object大小是8*2n的倍数，这个是写死在代码里的。
   - 内存管理组件
+- go协程调度
+  - goroutine 占用的资源非常少，每个goroutine stack的size默认设置为2k，goroutine调度的切换也不用陷入(trap)操作系统内核层完成，代价很低。因此，一个Go程序中可以创建成千上万个并发的goroutine。**所有的go代码都在goroutine中执行，哪怕是go的runtime也不例外**。将这些goroutines按照一定算法放到"CPU"上执行的程序就叫goroutine调度器或goroutine scheduler
+  - G-M模型 : G (goroutine), M (Machine)
+  - G-P-M模型 : P是一个"逻辑Processor"，每个G要想真正运行起来，首先需要被分配一个P(进入到P的local runqueue中)。对于G来说，P就是运行它的"CPU"，可以说 : **G的眼里只有P**。但从Go scheduler视角来看，真正的"CPU"是M，只有将P和M绑定才能让P中的G得以真实地运行起来。这样的P与M的关系，就好比Linux操作系统调度层面用户线程(user thread)与核心线程(kernel thread)的对应关系那样(N * M)
+  - 抢占式调度 : **这个抢占式调度的原理则是在每个函数或方法的的入口加上一段额外的代码，让runtime有机会检查是否需要执行抢占调度**。但**对于没有函数调用纯算法循环计算的G，Scheduler依然无法抢占**
+  - runqput函数会尝试把newq放到本地队列上，如果本地队列满了，它会将本地队列的前半部分和newg迁移到全局队列中。剩下的事情就是等待Machine自己去拿任务了
+    - 当前 Processor 队列已满，Machine 会将本地队列的部分 Goroutine 迁移到 Global Runnable Queue 中
+    - Machine 绑定的 Processor 没有可执行的 Goroutine 时，它会去 **Global Runnable Queue、Net Network 和其他 Processor 的队列中抢任务**，查找顺序 : 
+      - Local Runnable Queue
+      - Global Runnable Queue
+      - Net Network
+      - Other Processor’s Runnable Queue
+    - 当 Machine 没有可执行的任务时，它会在 `findrunnable` 中调用 stopm 进入休眠状态
+- go垃圾回收
+  - 在Go语言中，不同于GHC的全局暂停(stop-the-world)收集器，Go的垃圾收集器是和主程序并行的。这就可以避免程序的长时间暂停
+  - **三色标记清除算法**
