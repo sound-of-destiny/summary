@@ -159,6 +159,7 @@ mysql
        - using where : 使用了 where
        - using join buffer : 使用了连接缓存
        - imposible where : where 子句值总是 false，不能用来获取任何元组
+   - **force index(强制要走的那个索引)** 强制使用某个索引
 - 索引优化
    - 索引分析 
      - 单表 : range 类型查询字段后面的索引无效
